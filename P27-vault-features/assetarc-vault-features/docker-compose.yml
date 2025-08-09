@@ -1,0 +1,7 @@
+version:'3.9'
+services:
+  vault:
+    build: .
+    env_file: .env
+    ports: ['8027:8027']
+    restart: unless-stopped

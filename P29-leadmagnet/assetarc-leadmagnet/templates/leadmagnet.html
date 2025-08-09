@@ -1,0 +1,14 @@
+
+<html><head><meta charset="utf-8"><style>
+body{font-family:-apple-system,Segoe UI,Roboto,Arial;margin:24px}
+h1{font-size:24px;margin:0 0 12px}
+.card{border:1px solid #ddd;border-radius:12px;padding:16px;margin:12px 0}
+</style></head><body>
+  <h1>{{ title or "Asset Protection Playbook" }}</h1>
+  <div class="card"><h3>Checklist</h3><ul>
+    <li>Trust Deed reviewed in last 12 months? {{ trust_review or "No" }}</li>
+    <li>BO Register maintained? {{ bo_register or "No" }}</li>
+    <li>Section 7C checks? {{ s7c or "Unknown" }}</li></ul>
+  </div>
+  <div class="card"><h3>Next Steps</h3><p>{{ next_steps or "Book a paid consult to tailor your structure." }}</p></div>
+</body></html>
