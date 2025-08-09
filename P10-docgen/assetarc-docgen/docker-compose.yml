@@ -1,0 +1,8 @@
+
+version: '3.9'
+services:
+  docgen:
+    build: .
+    env_file: .env
+    ports: ['5010:5010']
+    restart: unless-stopped

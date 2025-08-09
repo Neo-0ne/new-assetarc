@@ -1,0 +1,96 @@
+{
+  "info": {
+    "name": "AssetArc DocGen",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "url": "{{DOCS}}/healthz"
+      }
+    },
+    {
+      "name": "List templates",
+      "request": {
+        "method": "GET",
+        "url": "{{DOCS}}/templates"
+      }
+    },
+    {
+      "name": "Generate DOCX",
+      "request": {
+        "method": "POST",
+        "url": "{{DOCS}}/generate/docx",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"template_id\":\"company_resolution.docx\",\n  \"values\":{\"COMPANY_NAME\":\"AssetArc (Pty) Ltd\",\"DATE\":\"2025-08-10\",\"DIRECTOR_NAME\":\"J. Dlamini\"},\n  \"output_name\":\"resolution-assetarc.docx\",\n  \"consume_token\": false\n}"
+        }
+      }
+    },
+    {
+      "name": "Generate PDF",
+      "request": {
+        "method": "POST",
+        "url": "{{DOCS}}/generate/pdf",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"template_id\":\"invoice.html\",\n  \"values\":{\"client_name\":\"ACME\",\"client_email\":\"client@example.com\",\"date\":\"2025-08-10\",\"items\":[{\"desc\":\"Consult\",\"qty\":1,\"unit\":1500.00}]},\n  \"output_name\":\"invoice-acme.pdf\",\n  \"consume_token\": false\n}"
+        }
+      }
+    },
+    {
+      "name": "Approve+Upload (final)",
+      "request": {
+        "method": "POST",
+        "url": "{{DOCS}}/approve-upload",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"template_id\":\"company_resolution.docx\",\n  \"values\":{\"COMPANY_NAME\":\"AssetArc (Pty) Ltd\",\"DATE\":\"2025-08-10\",\"DIRECTOR_NAME\":\"J. Dlamini\"},\n  \"output_name\":\"resolution-final.docx\",\n  \"kind\":\"docx\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Grant local credit (fallback)",
+      "request": {
+        "method": "POST",
+        "url": "{{DOCS}}/credits/grant",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"client@example.com\",\n  \"amount\": 2\n}"
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "DOCS",
+      "value": "http://localhost:5010"
+    }
+  ]
+}
