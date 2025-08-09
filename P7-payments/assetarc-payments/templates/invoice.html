@@ -1,0 +1,16 @@
+
+<!doctype html><html><head><meta charset="utf-8"><style>
+body{font-family: -apple-system, Segoe UI, Roboto, Arial; font-size:14px;}
+h1{font-size:22px;margin:0 0 8px;}
+table{width:100%;border-collapse:collapse;margin-top:12px}
+th,td{border:1px solid #ddd;padding:6px;text-align:left}
+tfoot td{font-weight:bold}
+</style></head><body>
+<h1>Invoice</h1>
+<div>From: {{ INVOICE_FROM_NAME or 'AssetArc Advisory' }}</div>
+<div>To: {{ client_name }} ({{ client_email }})</div>
+<div>Date: {{ date }}</div>
+<table><thead><tr><th>Description</th><th>Qty</th><th>Unit</th><th>Total</th></tr></thead>
+<tbody>{% for item in items %}<tr><td>{{ item.desc }}</td><td>{{ item.qty }}</td><td>{{ '%.2f'|format(item.unit) }}</td><td>{{ '%.2f'|format(item.qty*item.unit) }}</td></tr>{% endfor %}</tbody>
+<tfoot><tr><td colspan="3">Grand Total</td><td>{{ '%.2f'|format(total) }}</td></tr></tfoot></table>
+</body></html>

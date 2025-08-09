@@ -1,0 +1,9 @@
+
+version: '3.9'
+services:
+  gateway:
+    build: .
+    container_name: assetarc-gateway
+    env_file: .env
+    ports: ['5010:5010']
+    restart: unless-stopped
