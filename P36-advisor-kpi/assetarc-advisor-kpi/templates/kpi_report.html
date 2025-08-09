@@ -1,0 +1,8 @@
+
+<html><body><h1>Advisor KPI Summary</h1>
+<p>Period: {{ period or "This Month" }}</p>
+<table border="1" cellspacing="0" cellpadding="6">
+  <tr><th>Advisor</th><th>Clients</th><th>Credits Outstanding</th></tr>
+  {% for row in rows %}<tr><td>{{ row.advisor }}</td><td>{{ row.clients }}</td><td>{{ row.credits }}</td></tr>{% endfor %}
+</table>
+</body></html>

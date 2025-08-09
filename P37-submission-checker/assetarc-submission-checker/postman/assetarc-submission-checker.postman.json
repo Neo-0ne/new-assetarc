@@ -1,0 +1,62 @@
+{
+  "info": {
+    "name": "",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "url": "{{BASE}}/healthz"
+      }
+    },
+    {
+      "name": "List Templates",
+      "request": {
+        "method": "GET",
+        "url": "{{BASE}}/templates"
+      }
+    },
+    {
+      "name": "Generate DOCX",
+      "request": {
+        "method": "POST",
+        "url": "{{BASE}}/generate/docx",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"template_id\":\"sample1.docx\",\n  \"values\":{\"NAME\":\"Client\",\"DATE\":\"2025-08-10\"},\n  \"output_name\":\"out.docx\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Generate PDF",
+      "request": {
+        "method": "POST",
+        "url": "{{BASE}}/generate/pdf",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"template_id\":\"report.html\",\n  \"values\":{\"title\":\"Report\",\"body\":\"Hello\"},\n  \"output_name\":\"report.pdf\"\n}"
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "BASE",
+      "value": "http://localhost:8037"
+    }
+  ]
+}
