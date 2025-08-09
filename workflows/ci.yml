@@ -1,0 +1,48 @@
+name: CI
+on:
+  pull_request:
+    branches: [ main ]
+jobs:
+  build-changed:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Determine base
+        run: echo "BASE=${{ github.base_ref || 'main' }}" >> $GITHUB_ENV
+
+      - name: Fetch base
+        run: |
+          git fetch --no-tags --prune --depth=1 origin $BASE:refs/remotes/origin/$BASE || true
+
+      - name: Detect changed services
+        id: ch
+        shell: bash
+        run: |
+          set -eo pipefail
+          DIFF=$(git diff --name-only origin/$BASE...HEAD || true)
+          echo "$DIFF" | grep '^services/' | cut -d/ -f1-2 | sort -u > changed.txt || true
+          echo "dirs<<EOF" >> $GITHUB_OUTPUT
+          cat changed.txt >> $GITHUB_OUTPUT || true
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install generator deps
+        run: pip install pyyaml
+
+      - name: Build each changed service (lint/install)
+        if: steps.ch.outputs.dirs != ''
+        run: |
+          while read d; do
+            [ -z "$d" ] && continue
+            echo "== $d =="
+            REQ=$(find "$d" -name requirements.txt | head -n1 || true)
+            if [ -n "$REQ" ]; then
+              pip install -r "$REQ"
+            fi
+            # place holder: run unit tests if present
+          done < changed.txt

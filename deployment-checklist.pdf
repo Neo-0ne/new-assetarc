@@ -1,0 +1,70 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+2 0 obj
+<< /Length 2136 >>
+stream
+BT /F1 10 Tf
+1 0 0 1 72 780 Tm ( AssetArc  Deployment Checklist \(Integrated\) ) Tj
+1 0 0 1 72 766 Tm (  ) Tj
+1 0 0 1 72 752 Tm ( Core ) Tj
+1 0 0 1 72 738 Tm ( [ ] Domains & DNS for all subdomains \(auth, llm, fx, vault, admin, etc.\) ) Tj
+1 0 0 1 72 724 Tm ( [ ] TLS certificates issued \(Let's Encrypt or ACM\) per subdomain ) Tj
+1 0 0 1 72 710 Tm ( [ ] Global .env set: JWT_SECRET, COOKIE_DOMAIN, CORS_ALLOWED_ORIGINS ) Tj
+1 0 0 1 72 696 Tm (  ) Tj
+1 0 0 1 72 682 Tm ( AWS ) Tj
+1 0 0 1 72 668 Tm ( [ ] S3 bucket created in af-south-1 with versioning \(vault\) ) Tj
+1 0 0 1 72 654 Tm ( [ ] IAM policy + user/role for S3 + SES \(eu-west-1\) ) Tj
+1 0 0 1 72 640 Tm ( [ ] SES domain verified and sender set ) Tj
+1 0 0 1 72 626 Tm ( [ ] Lifecycle rules \(vault previews\) + optional cross-region replication ) Tj
+1 0 0 1 72 612 Tm (  ) Tj
+1 0 0 1 72 598 Tm ( Services ) Tj
+1 0 0 1 72 584 Tm ( [ ] P01 Auth up, OTP emails delivered ) Tj
+1 0 0 1 72 570 Tm ( [ ] P02 LLM up, skills endpoint returns list ) Tj
+1 0 0 1 72 556 Tm ( [ ] P03 FX up, /fx/lock returns 24h lock ) Tj
+1 0 0 1 72 542 Tm ( [ ] P14 Doc Engine generates DOCX + PDF ) Tj
+1 0 0 1 72 528 Tm ( [ ] P17 Tokens/Subs issues credits post-payment ) Tj
+1 0 0 1 72 514 Tm ( [ ] P27 Vault Features presigns downloads ) Tj
+1 0 0 1 72 500 Tm ( [ ] P32 Marketing Automation can render PDF ) Tj
+1 0 0 1 72 486 Tm ( [ ] P40 Newsletter Logic can render PDF ) Tj
+1 0 0 1 72 472 Tm ( [ ] P41 UTM Metrics logs events ) Tj
+1 0 0 1 72 458 Tm (  ) Tj
+1 0 0 1 72 444 Tm ( Payments & Booking ) Tj
+1 0 0 1 72 430 Tm ( [ ] Yoco + NOWPayments keys set in global env ) Tj
+1 0 0 1 72 416 Tm ( [ ] Webhooks \(P07\) reachable from internet ) Tj
+1 0 0 1 72 402 Tm ( [ ] Booking flow: see slots -> pay -> confirm ) Tj
+1 0 0 1 72 388 Tm (  ) Tj
+1 0 0 1 72 374 Tm ( WordPress ) Tj
+1 0 0 1 72 360 Tm ( [ ] SSO plugin installed and Auth base set ) Tj
+1 0 0 1 72 346 Tm ( [ ] Pages gated where needed ) Tj
+1 0 0 1 72 332 Tm (  ) Tj
+1 0 0 1 72 318 Tm ( Monitoring ) Tj
+1 0 0 1 72 304 Tm ( [ ] Admin dashboard shows all services UP ) Tj
+1 0 0 1 72 290 Tm ( [ ] Logs shipped to your aggregator \(optional\) ) Tj
+ET
+endstream
+endobj
+3 0 obj
+<< /Type /Page /Parent 5 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R >> >> /Contents 2 0 R >>
+endobj
+4 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+5 0 obj
+<< /Type /Catalog /Pages 4 0 R >>
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000015 00000 n 
+0000000085 00000 n 
+0000002273 00000 n 
+0000002399 00000 n 
+0000002456 00000 n 
+trailer
+<< /Size 6 /Root 5 0 R >>
+startxref
+2505
+%%EOF
