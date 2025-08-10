@@ -1,0 +1,144 @@
+name: Build & Push Images
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: assetarc
+
+jobs:
+  build-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install helper deps
+        run: pip install pyyaml
+
+      # Create missing Dockerfiles/gunicorn.conf.py/wsgi.py if needed.
+      # Uses your ensure-dockerfiles.py if present; otherwise runs an inline fallback.
+      - name: Ensure Dockerfiles exist
+        run: |
+          if [ -f scripts/ensure-dockerfiles.py ]; then
+            echo "[ensure] using scripts/ensure-dockerfiles.py"
+            python3 scripts/ensure-dockerfiles.py || true
+          else
+            echo "[ensure] fallback generator (inline)"
+            python3 - <<'PY'
+            import os, re, pathlib
+            ROOT = pathlib.Path('.').resolve()
+            def find_code_root(p):
+                # Prefer subdir starting with assetarc-*
+                cands = [d for d in p.iterdir() if d.is_dir() and (d/'app.py').exists() and (d/'requirements.txt').exists()]
+                for c in cands:
+                    if c.name.startswith('assetarc-'):
+                        return c
+                if (p/'app.py').exists() and (p/'requirements.txt').exists():
+                    return p
+                return cands[0] if cands else None
+
+            DOCKERFILE = """\
+            FROM python:3.11-slim
+            ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+            WORKDIR /app
+            RUN apt-get update && apt-get install -y --no-install-recommends build-essential ca-certificates && rm -rf /var/lib/apt/lists/*
+            COPY requirements.txt ./
+            RUN pip install --no-cache-dir -r requirements.txt
+            COPY . .
+            RUN useradd -m appuser
+            USER appuser
+            EXPOSE 8000
+            CMD ["gunicorn", "-c", "gunicorn.conf.py", "app:app"]
+            """
+            GUNICORN = """\
+            import multiprocessing
+            bind = "0.0.0.0:8000"
+            workers = multiprocessing.cpu_count() * 2 + 1
+            threads = 2
+            timeout = 120
+            accesslog = "-"
+            errorlog = "-"
+            """
+            WSGI = "from app import app as application\n"
+            IGNORE = "**/__pycache__/\n*.pyc\n*.pyo\n*.pyd\n.venv/\n.env\n.git/\n*.log\n*.zip\nnode_modules/\ndist/\nbuild/\n"
+
+            for d in sorted(ROOT.glob("P[0-9][0-9]-*")):
+                if not d.is_dir(): continue
+                code = find_code_root(d)
+                if not code: continue
+                df = code/"Dockerfile"
+                gc = code/"gunicorn.conf.py"
+                wg = code/"wsgi.py"
+                di = code/".dockerignore"
+                if not df.exists(): df.write_text(DOCKERFILE, encoding="utf-8")
+                if not gc.exists(): gc.write_text(GUNICORN, encoding="utf-8")
+                if not wg.exists(): wg.write_text(WSGI, encoding="utf-8")
+                if not di.exists(): di.write_text(IGNORE, encoding="utf-8")
+            print("[ensure] done")
+            PY
+          fi
+
+      - name: Determine image tag
+        id: tag
+        run: |
+          if [ "${{ github.ref_name }}" = "main" ]; then
+            echo "tag=main" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build & push all P## services
+        env:
+          OWNER: ${{ github.repository_owner }}
+          TAG: ${{ steps.tag.outputs.tag }}
+          REGISTRY: ${{ env.REGISTRY }}
+          IMAGE_PREFIX: ${{ env.IMAGE_PREFIX }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          services=(P[0-9][0-9]-*)
+          if [ ${#services[@]} -eq 0 ]; then
+            echo "No P## service directories found."; exit 1
+          fi
+          for svc in "${services[@]}"; do
+            key=$(echo "$svc" | tr '[:upper:]' '[:lower:]')   # e.g. p01-auth
+            # find code root
+            code="$svc"
+            if [ -d "$svc" ]; then
+              sub=$(ls -d "$svc"/assetarc-* 2>/dev/null | head -n1 || true)
+              if [ -n "$sub" ]; then code="$sub"; fi
+            fi
+            if [ ! -f "$code/Dockerfile" ]; then
+              echo "Skipping $svc (no Dockerfile at $code)"; continue
+            fi
+            image="${REGISTRY}/${OWNER}/${IMAGE_PREFIX}-${key}:${TAG}"
+            echo "==> Building ${image} from ${code}"
+            docker buildx build --push -t "${image}" "${code}"
+          done
+
+      - name: Summary
+        run: echo "Build & push complete. Tag: ${{ steps.tag.outputs.tag }}"
