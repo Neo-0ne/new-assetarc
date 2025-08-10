@@ -1,0 +1,170 @@
+name: Build & Push Images
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: assetarc
+
+jobs:
+  build-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Repo state (debug)
+        run: |
+          echo "ref: $GITHUB_REF  name: $GITHUB_REF_NAME  sha: $GITHUB_SHA"
+          echo "::group::Top-level"; ls -la; echo "::endgroup::"
+          echo "::group::Find service dirs at root"
+          find . -maxdepth 2 -type d -name 'P[0-9][0-9]-*' -print || true
+          echo "::endgroup::"
+          if [ -d services ]; then
+            echo "::group::Find service dirs under ./services"
+            find services -maxdepth 2 -type d -name 'P[0-9][0-9]-*' -print || true
+            echo "::endgroup::"
+          fi
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Ensure helper deps
+        run: pip install pyyaml
+
+      - name: Ensure Dockerfiles exist
+        run: |
+          python3 - <<'PY'
+          import pathlib
+          ROOT = pathlib.Path('.').resolve()
+
+          def find_code_root(p: pathlib.Path):
+            kids = [d for d in p.iterdir() if d.is_dir() and (d/'app.py').exists() and (d/'requirements.txt').exists()]
+            for c in kids:
+              if c.name.startswith('assetarc-'): return c
+            if (p/'app.py').exists() and (p/'requirements.txt').exists(): return p
+            return kids[0] if kids else None
+
+          DOCKERFILE = """\
+          FROM python:3.11-slim
+          ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+          WORKDIR /app
+          RUN apt-get update && apt-get install -y --no-install-recommends build-essential ca-certificates && rm -rf /var/lib/apt/lists/*
+          COPY requirements.txt ./
+          RUN pip install --no-cache-dir -r requirements.txt
+          COPY . .
+          RUN useradd -m appuser
+          USER appuser
+          EXPOSE 8000
+          CMD ["gunicorn", "-c", "gunicorn.conf.py", "app:app"]
+          """
+          GUNICORN = """\
+          import multiprocessing
+          bind = "0.0.0.0:8000"
+          workers = multiprocessing.cpu_count() * 2 + 1
+          threads = 2
+          timeout = 120
+          accesslog = "-"
+          errorlog = "-"
+          """
+          WSGI = "from app import app as application\n"
+          IGN = "**/__pycache__/\n*.pyc\n*.pyo\n*.pyd\n.venv/\n.env\n.git/\n*.log\n*.zip\nnode_modules/\ndist/\nbuild/\n"
+
+          svc_dirs = []
+          for root in (ROOT, ROOT/'services'):
+            if root.exists():
+              for d in sorted(root.glob('P[0-9][0-9]-*')):
+                if d.is_dir(): svc_dirs.append(d)
+
+          created = 0
+          for svc in svc_dirs:
+            code = next((c for c in svc.glob('assetarc-*') if (c/'app.py').exists()), None) or svc
+            if not (code/'app.py').exists(): 
+              print(f"[ensure] skip {svc} (no app.py)"); continue
+            for rel, content in {
+              'Dockerfile': DOCKERFILE,
+              'gunicorn.conf.py': GUNICORN,
+              'wsgi.py': WSGI,
+              '.dockerignore': IGN
+            }.items():
+              f = code/rel
+              if not f.exists():
+                f.write_text(content, encoding='utf-8')
+                created += 1
+                print(f"[ensure] created {f}")
+          print(f"[ensure] done, {created} files created/ensured across {len(svc_dirs)} services.")
+          PY
+
+      - name: Determine image tag
+        id: tag
+        run: |
+          if [ "${{ github.ref_name }}" = "main" ]; then
+            echo "tag=main" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build & push (resilient)
+        id: buildpush
+        env:
+          OWNER: ${{ github.repository_owner }}
+          TAG: ${{ steps.tag.outputs.tag }}
+          REGISTRY: ${{ env.REGISTRY }}
+          IMAGE_PREFIX: ${{ env.IMAGE_PREFIX }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          roots=()
+          for p in P[0-9][0-9]-*; do [ -d "$p" ] && roots+=("$p"); done
+          if [ -d services ]; then
+            for p in services/P[0-9][0-9]-*; do [ -d "$p" ] && roots+=("$p"); done
+          fi
+          if [ ${#roots[@]} -eq 0 ]; then
+            echo "::error title=No services::No P##-* service dirs found at root or ./services"
+            exit 1
+          fi
+          ok_list=(); skip_list=(); fail_list=()
+          for svc in "${roots[@]}"; do
+            key=$(basename "$svc" | tr '[:upper:]' '[:lower:]')
+            code="$svc"; sub=$(ls -d "$svc"/assetarc-* 2>/dev/null | head -n1 || true); [ -n "$sub" ] && code="$sub"
+            if [ ! -f "$code/Dockerfile" ]; then
+              echo "::warning title=Skip::No Dockerfile at $code"; skip_list+=("$key (no Dockerfile)"); continue; fi
+            if [ ! -f "$code/requirements.txt" ]; then
+              echo "::warning title=Skip::No requirements.txt at $code"; skip_list+=("$key (no requirements.txt)"); continue; fi
+            image="${REGISTRY}/${OWNER}/${IMAGE_PREFIX}-${key}:${TAG}"
+            echo "==> Building ${image} from ${code}"
+            if docker buildx build --push -t "${image}" "${code}"; then ok_list+=("$key"); else fail_list+=("$key"); fi
+          done
+          echo "OK::${ok_list[*]}"      > build-summary.txt
+          echo "SKIP::${skip_list[*]}" >> build-summary.txt
+          echo "FAIL::${fail_list[*]}" >> build-summary.txt
+          echo "Built: ${#ok_list[@]}, Skipped: ${#skip_list[@]}, Failed: ${#fail_list[@]}"
+          if [ "${#fail_list[@]}" -ne 0 ]; then
+            echo "::error title=Build failures::${fail_list[*]}"; exit 2; fi
+
+      - name: Upload build summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-summary
+          path: build-summary.txt
