@@ -23,18 +23,17 @@ jobs:
 
       - name: Repo state (debug)
         run: |
-          echo "ref: $GITHUB_REF"
-          echo "ref_name: $GITHUB_REF_NAME"
-          echo "sha: $GITHUB_SHA"
-          echo "default origin/HEAD:" || true
-          git rev-parse --abbrev-ref origin/HEAD || true
-          echo "Top-level:"
+          echo "ref: $GITHUB_REF  name: $GITHUB_REF_NAME  sha: $GITHUB_SHA"
+          echo "::group::Top-level"
           ls -la
-          echo "Find service dirs at root:"
+          echo "::endgroup::"
+          echo "::group::Find service dirs at root"
           find . -maxdepth 2 -type d -name 'P[0-9][0-9]-*' -print || true
+          echo "::endgroup::"
           if [ -d services ]; then
-            echo "Find service dirs under ./services:"
+            echo "::group::Find service dirs under ./services"
             find services -maxdepth 2 -type d -name 'P[0-9][0-9]-*' -print || true
+            echo "::endgroup::"
           fi
 
       - name: Set up Docker Buildx
@@ -52,15 +51,16 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install helper deps
+      - name: Ensure helper deps
         run: pip install pyyaml
 
-      # Auto-create Dockerfile/gunicorn.conf.py/wsgi.py/.dockerignore if missing
-      - name: Ensure Dockerfiles exist (root + services/)
+      # Create minimal Dockerfile + friends where missing (both root and services/ layouts).
+      - name: Ensure Dockerfiles exist
         run: |
           python3 - <<'PY'
-          import os, pathlib
+          import pathlib
           ROOT = pathlib.Path('.').resolve()
+
           def find_code_root(p: pathlib.Path):
               cands = [d for d in p.iterdir() if d.is_dir() and (d/'app.py').exists() and (d/'requirements.txt').exists()]
               for c in cands:
@@ -69,6 +69,7 @@ jobs:
               if (p/'app.py').exists() and (p/'requirements.txt').exists():
                   return p
               return cands[0] if cands else None
+
           DOCKERFILE = """\
           FROM python:3.11-slim
           ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
@@ -93,15 +94,25 @@ jobs:
           """
           WSGI = "from app import app as application\n"
           IGNORE = "**/__pycache__/\n*.pyc\n*.pyo\n*.pyd\n.venv/\n.env\n.git/\n*.log\n*.zip\nnode_modules/\ndist/\nbuild/\n"
-          candidates = []
+
+          svc_dirs = []
           for root in (ROOT, ROOT/'services'):
               if not root.exists(): continue
               for d in sorted(root.glob('P[0-9][0-9]-*')):
-                  if d.is_dir(): candidates.append(d)
+                  if d.is_dir(): svc_dirs.append(d)
+
           created = 0
-          for svc in candidates:
-              code = find_code_root(svc)
-              if not code: continue
+          for svc in svc_dirs:
+              # Prefer assetarc-* child as code root
+              code = next((c for c in svc.glob('assetarc-*') if (c/'app.py').exists()), None)
+              if code is None:
+                  code = svc
+              # Only generate files if at least app.py exists somewhere
+              app_py = code/'app.py'
+              reqs = code/'requirements.txt'
+              if not app_py.exists():
+                  print(f"[ensure] skip {svc} (no app.py in {code})")
+                  continue
               for rel, content in {
                 'Dockerfile': DOCKERFILE,
                 'gunicorn.conf.py': GUNICORN,
@@ -113,7 +124,7 @@ jobs:
                       f.write_text(content, encoding='utf-8')
                       created += 1
                       print(f"[ensure] created {f}")
-          print(f"[ensure] done, {created} files created/ensured across {len(candidates)} services.")
+          print(f"[ensure] done, {created} files created/ensured across {len(svc_dirs)} services.")
           PY
 
       - name: Determine image tag
@@ -125,7 +136,8 @@ jobs:
             echo "tag=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
           fi
 
-      - name: Build & push all P## services (root + services/)
+      - name: Build & push (resilient)
+        id: buildpush
         env:
           OWNER: ${{ github.repository_owner }}
           TAG: ${{ steps.tag.outputs.tag }}
@@ -134,31 +146,63 @@ jobs:
         run: |
           set -euo pipefail
           shopt -s nullglob
-          # collect candidates from both locations
-          roots=(P[0-9][0-9]-* services/P[0-9][0-9]-*)
-          count=0
+
+          declare -a roots
+          for p in P[0-9][0-9]-*; do [ -d "$p" ] && roots+=("$p"); done
+          if [ -d services ]; then
+            for p in services/P[0-9][0-9]-*; do [ -d "$p" ] && roots+=("$p"); done
+          fi
+
+          if [ ${#roots[@]} -eq 0 ]; then
+            echo "::error title=No services::No P##-* service dirs found at root or ./services"
+            exit 1
+          fi
+
+          ok_list=()
+          skip_list=()
+          fail_list=()
+
           for svc in "${roots[@]}"; do
-            [ -d "$svc" ] || continue
-            key=$(basename "$svc" | tr '[:upper:]' '[:lower:]')  # e.g. p01-auth
-            # find code root
+            key=$(basename "$svc" | tr '[:upper:]' '[:lower:]')  # p01-auth, etc.
+
+            # choose code root
             code="$svc"
             sub=$(ls -d "$svc"/assetarc-* 2>/dev/null | head -n1 || true)
             if [ -n "$sub" ]; then code="$sub"; fi
+
             if [ ! -f "$code/Dockerfile" ]; then
-              echo "::warning title=Skip::No Dockerfile at $code (after ensure). Skipping $svc."
+              echo "::warning title=Skip::No Dockerfile at $code (even after ensure). Skipping $svc."
+              skip_list+=("$key (no Dockerfile)")
               continue
             fi
+            if [ ! -f "$code/requirements.txt" ]; then
+              echo "::warning title=Skip::No requirements.txt at $code. Skipping $svc."
+              skip_list+=("$key (no requirements.txt)")
+              continue
+            fi
+
             image="${REGISTRY}/${OWNER}/${IMAGE_PREFIX}-${key}:${TAG}"
             echo "==> Building ${image} from ${code}"
-            docker buildx build --push -t "${image}" "${code}"
-            count=$((count+1))
+            if docker buildx build --push -t "${image}" "${code}"; then
+              ok_list+=("$key")
+            else
+              fail_list+=("$key")
+            fi
           done
-          if [ "$count" -eq 0 ]; then
-            echo "::error title=No services found::No P##-* service dirs found at root or ./services"
-            exit 1
-          fi
-          echo "Built and pushed $count images."
 
-      - name: Summary
+          echo "OK::${ok_list[*]}"        > build-summary.txt
+          echo "SKIP::${skip_list[*]}"   >> build-summary.txt
+          echo "FAIL::${fail_list[*]}"   >> build-summary.txt
+          echo "Built: ${#ok_list[@]}, Skipped: ${#skip_list[@]}, Failed: ${#fail_list[@]}"
+          # if any failed, exit non-zero so you notice; skips are allowed
+          if [ "${#fail_list[@]}" -ne 0 ]; then
+            echo "::error title=Build failures::${fail_list[*]}"
+            exit 2
+          fi
+
+      - name: Upload build summary
         if: always()
-        run: echo "Build & push complete (or failed above). Tag: ${{ steps.tag.outputs.tag }}"
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-summary
+          path: build-summary.txt
