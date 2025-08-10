@@ -1,0 +1,7 @@
+version: '3.9'
+services:
+  payments:
+    build: .
+    env_file: .env
+    ports: ['5007:5007']
+    restart: unless-stopped

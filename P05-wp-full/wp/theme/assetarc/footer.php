@@ -1,0 +1,1 @@
+</main><footer>© AssetArc</footer><?php wp_footer(); ?></body></html>

@@ -1,0 +1,86 @@
+{
+  "info": {
+    "name": "AssetArc Gateway",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "url": "{{GW}}/healthz"
+      }
+    },
+    {
+      "name": "User",
+      "request": {
+        "method": "GET",
+        "url": "{{GW}}/user"
+      }
+    },
+    {
+      "name": "FX Latest",
+      "request": {
+        "method": "GET",
+        "url": "{{GW}}/bridge/fx/latest?base=USD&symbols=ZAR"
+      }
+    },
+    {
+      "name": "FX Lock",
+      "request": {
+        "method": "POST",
+        "url": "{{GW}}/bridge/fx/lock",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"base\":\"USD\",\"target\":\"ZAR\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Create NOW Invoice",
+      "request": {
+        "method": "POST",
+        "url": "{{GW}}/bridge/payments/create-invoice/nowpayments",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"amount\": 1000,\n  \"currency\": \"ZAR\"\n}"
+        }
+      }
+    },
+    {
+      "name": "LLM Generate (free)",
+      "request": {
+        "method": "POST",
+        "url": "{{GW}}/bridge/llm/generate",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"mode\":\"free\",\n  \"messages\":[{\"role\":\"system\",\"content\":\"You are concise.\"},{\"role\":\"user\",\"content\":\"Say hello\"}]\n}"
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "GW",
+      "value": "http://localhost:5010"
+    }
+  ]
+}

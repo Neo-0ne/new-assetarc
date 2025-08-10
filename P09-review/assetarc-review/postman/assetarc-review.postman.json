@@ -1,0 +1,76 @@
+{
+  "info": {
+    "name": "AssetArc Review",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "url": "{{REV}}/healthz"
+      }
+    },
+    {
+      "name": "Create Submission",
+      "request": {
+        "method": "POST",
+        "url": "{{REV}}/submissions",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"type\":\"FICA\",\n  \"title\":\"Client KYC\",\n  \"data\": {\"id\":\"123\",\"notes\":\"test\"}\n}"
+        }
+      }
+    },
+    {
+      "name": "List Submissions",
+      "request": {
+        "method": "GET",
+        "url": "{{REV}}/submissions"
+      }
+    },
+    {
+      "name": "Add Flag",
+      "request": {
+        "method": "POST",
+        "url": "{{REV}}/flags",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"submission_id\":1,\n  \"level\":\"high\",\n  \"reason\":\"Missing ID doc\"\n}"
+        }
+      }
+    },
+    {
+      "name": "List Flags",
+      "request": {
+        "method": "GET",
+        "url": "{{REV}}/flags?status=open"
+      }
+    },
+    {
+      "name": "Resolve Flag",
+      "request": {
+        "method": "POST",
+        "url": "{{REV}}/flags/1/resolve"
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "REV",
+      "value": "http://localhost:5016"
+    }
+  ]
+}

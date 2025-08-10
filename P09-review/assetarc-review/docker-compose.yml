@@ -1,0 +1,7 @@
+version: '3.9'
+services:
+  review:
+    build: .
+    env_file: .env
+    ports: ['5016:5016']
+    restart: unless-stopped
