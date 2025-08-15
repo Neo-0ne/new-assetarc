@@ -42,9 +42,16 @@ def req():
 def ver():
     email=(request.json or {}).get('email','').strip().lower()
     code=(request.json or {}).get('code','').strip()
-    r=eng.execute(text('SELECT hash,exp FROM otps WHERE email=:e ORDER BY exp DESC LIMIT 1'), {'e':email}).fetchone()
+    with eng.connect() as c:
+        r=c.execute(text('SELECT hash,exp FROM otps WHERE email=:e ORDER BY exp DESC LIMIT 1'), {'e':email}).fetchone()
     if not r: return jsonify({'ok':False,'error':'no otp'}),400
-    if r[1] < datetime.utcnow(): return jsonify({'ok':False,'error':'expired'}),400
+    exp = r[1]
+    if isinstance(exp, str):
+        try:
+            exp = datetime.fromisoformat(exp)
+        except ValueError:
+            pass
+    if exp < datetime.utcnow(): return jsonify({'ok':False,'error':'expired'}),400
     if not bcrypt.checkpw(code.encode(), r[0]): return jsonify({'ok':False,'error':'invalid'}),400
     # issue cookie tokens using itsdangerous signer
     now=datetime.now(timezone.utc)
@@ -68,7 +75,8 @@ def refresh():
     except itsdangerous.BadSignature:
         return jsonify({'ok':False}),401
     jti=payload.get('jti'); email=payload.get('sub')
-    r=eng.execute(text('SELECT 1 FROM refresh WHERE jti=:j AND exp> :now'), {'j':jti,'now':datetime.utcnow()}).fetchone()
+    with eng.connect() as c:
+        r=c.execute(text('SELECT 1 FROM refresh WHERE jti=:j AND exp> :now'), {'j':jti,'now':datetime.utcnow()}).fetchone()
     if not r: return jsonify({'ok':False}),401
     now=datetime.now(timezone.utc)
     access=signer.dumps({'sub':email,'type':'access','iat':now.isoformat()})
