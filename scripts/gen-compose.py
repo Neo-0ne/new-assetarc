@@ -3,7 +3,13 @@ import os, json, re, sys, yaml
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+# Service folders may live directly under the repo root in some distributions
+# or inside a dedicated "services" directory.  Fall back to the root if the
+# "services" folder is missing so the generator still works.
 SERVICES = ROOT / "services"
+if not SERVICES.exists():
+    SERVICES = ROOT
+
 OUT = ROOT / "docker-compose.integrated.yml"
 GLOBAL_ENV = ROOT / ".env.global"
 
