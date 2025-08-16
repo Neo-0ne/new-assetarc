@@ -16,8 +16,10 @@ link.
 - `POST /files/<id>/signed-url` –
   `{disposition?: "inline"|"attachment", filename?: string}`
   → presigned S3 URL
+  The optional `filename` lets clients suggest a download name; if omitted, the stored
+  label is used.
   Example:
-
+  
   ```json
   {
     "disposition": "attachment",

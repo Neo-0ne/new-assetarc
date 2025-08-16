@@ -9,9 +9,9 @@ load_dotenv()
 app=Flask(__name__); CORS(app)
 eng=create_engine(os.getenv('DB_URL','sqlite:///assetarc_subs.db'), future=True)
 with eng.begin() as c:
-    c.execute(text('''CREATE TABLE IF NOT EXISTS tiers(
+    c.execute(text('''CREATE TABLE IF NOT EXISTS tiers (
         id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, monthly_tokens INTEGER, price REAL)'''))
-    c.execute(text('''CREATE TABLE IF NOT EXISTS subs(
+    c.execute(text('''CREATE TABLE IF NOT EXISTS subs (
         id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT, tier_id INTEGER, tokens_left INTEGER, started_at DATETIME DEFAULT CURRENT_TIMESTAMP)'''))
 
 @app.get('/healthz')
