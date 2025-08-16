@@ -46,8 +46,8 @@ def upload():
     key=f"{email}/{folder}/{int(datetime.utcnow().timestamp())}_{f.filename}"
     put_object(key, data, content_type)
     s=Session()
-    s.execute(sql('INSERT INTO files(owner_email,label,folder,s3_key,sha256,content_type,size_bytes,approved,version) VALUES (:e,:l,:fo,:k,:sha,:ct,:sz,0,1)'),
-              {'e':email,'l':label,'fo':folder,'k':key,'sha':sha,'ct':content_type,'sz':len(data)})
+    s.execute(sql('INSERT INTO files(owner_email,label,folder,s3_key,sha256,content_type,size_bytes,approved,version) VALUES (:e,:l,:folder,:k,:sha,:ct,:sz,0,1)'),
+              {'e':email,'l':label,'folder':folder,'k':key,'sha':sha,'ct':content_type,'sz':len(data)})
     s.commit()
     file_id=s.execute(sql('SELECT last_insert_rowid()')).scalar()
     return jsonify({'ok':True,'id':file_id,'key':key})
