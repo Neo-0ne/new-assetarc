@@ -1,5 +1,5 @@
 
-import os, requests
+import requests
 from flask import request, Response
 
 def _copy_headers(resp):

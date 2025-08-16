@@ -1,10 +1,10 @@
 
-import os, io, time, hashlib
+import os, io
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from dotenv import load_dotenv
 import boto3
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 
 load_dotenv()
 app=Flask(__name__); CORS(app)

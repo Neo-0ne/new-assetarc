@@ -4,7 +4,6 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
-from jinja2 import Template
 
 load_dotenv()
 app=Flask(__name__); CORS(app)
