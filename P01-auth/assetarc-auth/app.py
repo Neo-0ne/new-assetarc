@@ -50,7 +50,7 @@ def ver():
         try:
             exp = datetime.fromisoformat(exp)
         except ValueError:
-            pass
+            exp = datetime.utcnow()
     if exp < datetime.utcnow(): return jsonify({'ok':False,'error':'expired'}),400
     if not bcrypt.checkpw(code.encode(), r[0]): return jsonify({'ok':False,'error':'invalid'}),400
     # issue cookie tokens using itsdangerous signer

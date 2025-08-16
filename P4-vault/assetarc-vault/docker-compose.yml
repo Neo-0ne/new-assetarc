@@ -1,7 +1,0 @@
-version: '3.9'
-services:
-  vault:
-    build: .
-    env_file: .env
-    ports: ['5014:5014']
-    restart: unless-stopped

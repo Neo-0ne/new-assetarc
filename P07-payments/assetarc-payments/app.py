@@ -1,6 +1,6 @@
 
-import os, json, tempfile, datetime
-from flask import Flask, request, jsonify, send_file
+import os, tempfile, datetime, hmac, hashlib
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
 from sqlalchemy import text as sql
@@ -79,8 +79,14 @@ def checkout_np():
 # --- Webhooks (simulate verification) ---
 @app.post('/webhook/yoco')
 def wh_yoco():
+    raw=request.get_data()
+    secret=os.getenv('YOCO_WEBHOOK_SECRET','')
+    sig=request.headers.get('X-Yoco-Signature','')
+    mac=hmac.new(secret.encode(), raw, hashlib.sha256).hexdigest() if secret else ''
+    if secret and not hmac.compare_digest(sig, mac):
+        app.logger.warning('Invalid Yoco signature')
+        return jsonify({'ok':False,'error':'bad signature'}),403
     payload=request.get_json(force=True) or {}
-    # TODO: verify header signature using YOCO_WEBHOOK_SECRET
     email=payload.get('email') or (payload.get('metadata') or {}).get('email') or 'client@example.com'
     tokens=int((payload.get('metadata') or {}).get('tokens',1))
     _grant(email, tokens, 'yoco_payment')

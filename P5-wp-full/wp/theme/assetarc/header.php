@@ -1,1 +1,0 @@
-<!doctype html><html><head><?php wp_head(); ?></head><body><header><h1>AssetArc</h1></header><main>

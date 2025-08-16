@@ -37,7 +37,8 @@ def _tokens_balance(email:str)->int:
     try:
         r=requests.get(TOK_BASE.rstrip('/')+f'/tokens/balance?email={email}', headers={'Authorization':f'Bearer {TOK_KEY}'}, timeout=6)
         if r.status_code==200: return int(r.json().get('balance',0))
-    except Exception: pass
+    except requests.RequestException as e:
+        app.logger.error('Token balance lookup failed: %s', e)
     return 0
 @app.get('/entitlements')
 @require_auth
@@ -82,8 +83,10 @@ def wh_cal():
     data=payload.get('payload') or payload
     status='created' if 'created' in str(event).lower() else ('canceled' if 'cancel' in str(event).lower() else 'unknown')
     email=None
-    try: email=(data.get('invitee',{}) or {}).get('email') or (data.get('email') if isinstance(data,dict) else None)
-    except Exception: pass
+    try:
+        email=(data.get('invitee',{}) or {}).get('email') or (data.get('email') if isinstance(data,dict) else None)
+    except (AttributeError, TypeError) as e:
+        app.logger.warning('Could not extract email from Calendly payload: %s', e)
     s=Session()
     s.execute(sql('INSERT INTO events(calendly_event, invitee_email, status, payload) VALUES (:ev,:em,:st,:pl)'),
               {'ev':str(event),'em':email or '', 'st':status, 'pl':json.dumps(payload)})

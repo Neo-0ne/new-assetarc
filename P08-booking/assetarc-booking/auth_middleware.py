@@ -20,7 +20,6 @@ def current_user():
     except Exception:
         return None
 def require_auth(fn):
-    from functools import wraps
     @wraps(fn)
     def _w(*a, **k):
         u=current_user()
