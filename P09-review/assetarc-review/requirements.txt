@@ -5,3 +5,4 @@ PyJWT==2.8.0
 SQLAlchemy==2.0.29
 pydantic==2.8.2
 notion-client==2.2.1
+gunicorn==21.2.0
