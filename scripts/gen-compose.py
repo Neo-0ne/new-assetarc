@@ -142,7 +142,7 @@ if __name__ == "__main__":
         import yaml  # type: ignore
     except Exception:
         print(
-            "ERROR: pyyaml not available in your host Python. Install with: pip install pyyaml"
+            "ERROR: PyYAML not available in your host Python. Install with: pip install pyyaml"
         )
         sys.exit(1)
     main()
