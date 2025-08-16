@@ -12,8 +12,8 @@ CORS(app, resources={r"/*":{"origins":[o.strip() for o in os.getenv('CORS_ALLOWE
 JWT_SECRET=os.getenv('JWT_SECRET','change_me')
 ACCESS_COOKIE=os.getenv('ACCESS_COOKIE','access_token')
 
-NOW_API=os.getenv('NOWPAY_API_KEY','')
-NOW_IPN_SECRET=os.getenv('NOWPAY_IPN_SECRET','')
+NOW_API=os.getenv('NOWPAYMENTS_API_KEY', '')
+NOW_IPN_SECRET=os.getenv('NOWPAYMENTS_IPN_SECRET', '')
 YOCO_WH=os.getenv('YOCO_WEBHOOK_SECRET','')
 
 TOK_BASE=os.getenv('TOKENS_BASE','http://tokens.asset-arc.local')
