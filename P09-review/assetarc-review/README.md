@@ -1,5 +1,5 @@
 
-# AssetArc – Notion Sync & Review Queue (P9)
+# AssetArc – Notion Sync & Review Queue (P09)
 
 Ingests client submissions, syncs them to **Notion** (if configured), and exposes a **human review queue** with flags.
 If Notion isn't configured yet, it uses **SQLite** and also writes **CSV backups** you can open in Excel.

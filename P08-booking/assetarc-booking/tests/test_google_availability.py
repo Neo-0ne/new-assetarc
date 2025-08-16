@@ -60,3 +60,21 @@ def test_business_slots_window_and_boundaries():
             'end': '2024-06-01T10:00:00+00:00',
         }
     ]
+
+
+def test_business_slots_all_busy():
+    busy = [
+        {
+            'start': '2024-01-01T09:00:00+02:00',
+            'end': '2024-01-01T17:00:00+02:00',
+        }
+    ]
+    with patch('google_availability.freebusy', return_value=busy):
+        slots = google_availability.business_slots(
+            '2024-01-01',
+            '2024-01-01',
+            'cal',
+            'Africa/Johannesburg',
+            '09:00-17:00',
+        )
+    assert slots == []
