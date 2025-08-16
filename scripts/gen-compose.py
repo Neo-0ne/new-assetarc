@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import os, json, re, sys, yaml
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -92,18 +92,34 @@ def main():
     globs = load_global_env()
     services = {}
     for p in sorted(SERVICES.iterdir(), key=lambda p: p.name):
-        if not p.is_dir(): continue
+        if not p.is_dir():
+            continue
         sroot = sniff_service_root(p)
-        if not sroot: continue
+        if not sroot:
+            continue
         port = derive_port(sroot)
-        name = sroot.name.replace("assetarc-","")
+        name = sroot.name.replace("assetarc-", "")
         envfile = sroot / ".env"
         # inject shared vars (non-destructive)
         inject = {}
-        for k in ("JWT_SECRET","COOKIE_DOMAIN","COOKIE_SECURE","CORS_ALLOWED_ORIGINS",
-                  "AWS_ACCESS_KEY_ID","AWS_SECRET_ACCESS_KEY","S3_REGION","S3_BUCKET",
-                  "SES_REGION","SES_FROM_EMAIL","OPENAI_API_KEY","DEFAULT_MODEL",
-                  "YOCO_SECRET_KEY","NOWPAYMENTS_API_KEY","CALENDLY_ORG_URI","GOOGLE_SERVICE_ACCOUNT_JSON_PATH"):
+        for k in (
+            "JWT_SECRET",
+            "COOKIE_DOMAIN",
+            "COOKIE_SECURE",
+            "CORS_ALLOWED_ORIGINS",
+            "AWS_ACCESS_KEY_ID",
+            "AWS_SECRET_ACCESS_KEY",
+            "S3_REGION",
+            "S3_BUCKET",
+            "SES_REGION",
+            "SES_FROM_EMAIL",
+            "OPENAI_API_KEY",
+            "DEFAULT_MODEL",
+            "YOCO_SECRET_KEY",
+            "NOWPAYMENTS_API_KEY",
+            "CALENDLY_ORG_URI",
+            "GOOGLE_SERVICE_ACCOUNT_JSON_PATH",
+        ):
             if k in globs:
                 inject[k] = globs[k]
         upsert_envfile(envfile, inject)
@@ -112,19 +128,21 @@ def main():
             "build": {"context": str(sroot)},
             "container_name": f"assetarc-{name}",
             "env_file": [str(envfile)],
-            "restart": "unless-stopped"
+            "restart": "unless-stopped",
         }
         if port:
             services[name]["ports"] = [f"{port}:{port}"]
 
-    compose = {"version":"3.9", "services": services}
+    compose = {"version": "3.9", "services": services}
     OUT.write_text(yaml.safe_dump(compose, sort_keys=True), encoding="utf-8")
     print(f"Wrote {OUT} with {len(services)} services.")
 
 if __name__ == "__main__":
     try:
-        import yaml  # pyyaml present in host?
+        import yaml  # type: ignore
     except Exception:
-        print("ERROR: pyyaml not available in your host Python. Install with: pip install pyyaml")
+        print(
+            "ERROR: pyyaml not available in your host Python. Install with: pip install pyyaml"
+        )
         sys.exit(1)
     main()
