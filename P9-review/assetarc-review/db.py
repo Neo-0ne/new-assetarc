@@ -1,5 +1,5 @@
-
-import os, csv
+import os
+import csv
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
