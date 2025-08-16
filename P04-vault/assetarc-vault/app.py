@@ -4,7 +4,7 @@ from datetime import datetime
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel
 from sqlalchemy import text as sql
 from auth_middleware import require_auth
 from models import init_db, Session
@@ -99,7 +99,6 @@ def wm(file_id):
     email=(getattr(request,'user',{}) or {}).get('sub')
     if r[0]!=email: return jsonify({'ok':False,'error':'Forbidden'}),403
     # download original
-    import boto3, io
     from s3_utils import s3_client, BUCKET
     s3=s3_client()
     obj=s3.get_object(Bucket=BUCKET(), Key=r[1])

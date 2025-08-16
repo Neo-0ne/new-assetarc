@@ -1,6 +1,5 @@
 
 import os, boto3, hashlib
-from datetime import timedelta, datetime
 
 def s3_client():
     kw={'region_name': os.getenv('S3_REGION','af-south-1')}

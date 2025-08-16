@@ -1,10 +1,9 @@
 
-import io, os
+import io
 from PIL import Image, ImageDraw, ImageFont
 from PyPDF2 import PdfReader, PdfWriter
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
-from reportlab.lib.units import inch
 
 WATERMARK_TEXT_DEFAULT="ASSETARC – PREVIEW ONLY"
 FONT_SIZE=22

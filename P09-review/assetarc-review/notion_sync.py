@@ -1,5 +1,5 @@
 
-import os, json
+import os
 from typing import Optional
 try:
     from notion_client import Client

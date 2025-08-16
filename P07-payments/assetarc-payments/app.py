@@ -1,6 +1,6 @@
 
-import os, json, tempfile, datetime
-from flask import Flask, request, jsonify, send_file
+import os, tempfile, datetime
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
 from sqlalchemy import text as sql
