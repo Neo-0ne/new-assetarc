@@ -17,6 +17,8 @@ LLM=os.getenv('LLM_BASE','http://localhost:5002')
 FX =os.getenv('FX_BASE','http://localhost:5003')
 PAY=os.getenv('PAY_BASE','http://localhost:5011')
 BOOK=os.getenv('BOOKING_BASE','http://localhost:5012')
+VAULT=os.getenv('VAULT_BASE','http://localhost:5014')
+DOCS =os.getenv('DOCS_BASE','http://localhost:5015')
 
 @app.get('/healthz')
 def health(): return jsonify({'ok':True})
@@ -59,6 +61,24 @@ def b_booking_avail():
 @require_auth
 def b_llm_generate():
     return forward_json(LLM, 'POST', "/llm/generate", request.get_json(force=True))
+
+# -------- Bridge: Vault --------
+@app.route('/bridge/vault/<path:path>', methods=['GET','POST','PUT','DELETE','PATCH'])
+@require_auth
+def b_vault(path):
+    method=request.method
+    body=request.get_json(force=True, silent=True) if method in ('POST','PUT','PATCH') else None
+    qs=('?' + request.query_string.decode()) if request.query_string else ''
+    return forward_json(VAULT, method, f'/{path}{qs}', body)
+
+# -------- Bridge: Docs --------
+@app.route('/bridge/docs/<path:path>', methods=['GET','POST','PUT','DELETE','PATCH'])
+@require_auth
+def b_docs(path):
+    method=request.method
+    body=request.get_json(force=True, silent=True) if method in ('POST','PUT','PATCH') else None
+    qs=('?' + request.query_string.decode()) if request.query_string else ''
+    return forward_json(DOCS, method, f'/{path}{qs}', body)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.getenv('PORT','5010')), debug=os.getenv('FLASK_ENV')=='development')

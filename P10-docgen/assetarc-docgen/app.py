@@ -136,17 +136,17 @@ class FlagBody(BaseModel):
 @require_auth
 def flag():
     base=os.getenv('REVIEW_BASE','').strip()
-    if not base:
-        return jsonify({'ok':False,'error':'REVIEW_BASE not set'}),400
+    bearer=os.getenv('REVIEW_BEARER','').strip()
+    if not base or not bearer:
+        return jsonify({'ok':False,'error':'REVIEW_BASE and REVIEW_BEARER required'}),400
     try:
         b=FlagBody(**request.get_json(force=True))
     except ValidationError as e:
         return jsonify({'ok':False,'error':e.errors()}),400
     import requests
-    headers={'Content-Type':'application/json'}
-    rb=os.getenv('REVIEW_BEARER','').strip()
-    if rb: headers['Authorization']=f'Bearer {rb}'
-    r=requests.post(base.rstrip('/')+'/flags', headers=headers, json={'submission_id': b.submission_id or 0, 'level': b.level, 'reason': b.reason}, timeout=6)
+    headers={'Content-Type':'application/json', 'Authorization': f'Bearer {bearer}'}
+    r=requests.post(base.rstrip('/')+'/flags', headers=headers,
+                    json={'submission_id': b.submission_id or 0, 'level': b.level, 'reason': b.reason}, timeout=6)
     if r.status_code==200:
         return jsonify({'ok':True})
     return jsonify({'ok':False,'status':r.status_code,'resp': r.text}),502
